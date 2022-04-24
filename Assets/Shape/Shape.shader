@@ -1,13 +1,18 @@
-Shader "Dream Valley/Water"
+Shader "Dream Valley/Shape"
 {
     Properties
     {
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1,1,1,1)
+        _Center ("Center" ,Range(0,1)) = 0.5
+        _Radius ("Radius", Range(0,1)) = 0.5
+        _Smooth ("Smooth", Range (0.0,0.5)) = 0.1
+        [IntRange]_Edge ("EdgeCount" , Range(3,12)) = 3
     }
 
     SubShader
     {
+        Name "ShapeDrawer"
         Tags
         {
             "RenderType" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline"
@@ -45,6 +50,13 @@ Shader "Dream Valley/Water"
 
             float4 _BaseMap_ST;
             half4 _BaseColor;
+            float _Radius;
+            float _Center;
+            float _Smooth;
+            float _Edge;
+
+            #define ROTATION_PER_EDGE 90f;
+
             CBUFFER_END
 
             Varyings vert(Attributes IN)
@@ -55,12 +67,26 @@ Shader "Dream Valley/Water"
                 return OUT;
             }
 
+            float4 draw_shape(float2 uv, float edgeCount)
+            {
+                // float points[edgeCount];
+                // for (int i = 0; i < edgeCount; ++i)
+                // {
+                //     // points
+                // }
+                half3 sstep = 0;
+                sstep = smoothstep((uv.y - _Smooth), (uv.y + _Smooth), _Radius);
+
+                return float4(sstep, 1);
+            }
+
             half4 frag(Varyings IN) : SV_Target
             {
                 float2 uv = IN.uv;
-                uv.x += clamp(0, tan(_Time), 1);
-                half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv);
-                return color * _BaseColor;
+                // uv.x = saturate(uv.x-) 
+                float c = length((IN.uv) - _Center);
+                float t = length((sqrt(3) / 4) * pow(_Radius, 2));
+                return smoothstep(c - _Smooth, c + _Smooth, t);
             }
             ENDHLSL
         }

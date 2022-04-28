@@ -1,13 +1,10 @@
-Shader "Dream Valley/Shape"
+Shader "Dream Valley/Color Shift"
 {
     Properties
     {
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
-        [MainColor] _BaseColor("Color", Color) = (1,1,1,1)
-        _Center ("Center" ,Range(0,1)) = 0.5
-        _Radius ("Radius", Range(0,1)) = 0.5
-        _Smooth ("Smooth", Range (0.0,0.5)) = 0.1
-        [IntRange]_Edge ("EdgeCount" , Range(3,12)) = 3
+        _ColorA("Color A", Color) = (1,1,1,1)
+        _ColorB("Color B", Color) = (1,1,1,1)
     }
 
     SubShader
@@ -49,11 +46,8 @@ Shader "Dream Valley/Shape"
             // can use it in the fragment shader.
 
             float4 _BaseMap_ST;
-            half4 _BaseColor;
-            float _Radius;
-            float _Center;
-            float _Smooth;
-            float _Edge;
+            half4 _ColorA;
+            half4 _ColorB;
 
             #define ROTATION_PER_EDGE 90f;
 
@@ -67,26 +61,13 @@ Shader "Dream Valley/Shape"
                 return OUT;
             }
 
-            float4 draw_shape(float2 uv, float edgeCount)
-            {
-                // float points[edgeCount];
-                // for (int i = 0; i < edgeCount; ++i)
-                // {
-                //     // points
-                // }
-                half3 sstep = 0;
-                sstep = smoothstep((uv.y - _Smooth), (uv.y + _Smooth), _Radius);
-
-                return float4(sstep, 1);
-            }
-
             half4 frag(Varyings IN) : SV_Target
             {
-                float2 uv = IN.uv;
-                // uv.x = saturate(uv.x-) 
-                float c = length((IN.uv) - _Center);
-                float t = length((sqrt(3) / 4) * pow(_Radius, 2));
-                return smoothstep(c - _Smooth, c + _Smooth, t);
+                float x = frac(IN.uv.x + (_Time.y * .5));
+                x = abs(x * 2. - 1);
+                float4 col = lerp(_ColorA, _ColorB, x);
+
+                return col;
             }
             ENDHLSL
         }

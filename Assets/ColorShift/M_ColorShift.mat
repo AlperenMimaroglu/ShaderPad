@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Dream Valley_Water
+  m_Name: M_ColorShift
   m_Shader: {fileID: 4800000, guid: 19aab99729bdbe14f8e4d799f1a03064, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
@@ -26,10 +26,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Center: 0.5
+    - _Center: 0.806
     - _Edge: 3
     - _Radius: 0.744
     - _Smooth: 0
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ColorA: {r: 1, g: 0, b: 0, a: 1}
+    - _ColorB: {r: 0, g: 1, b: 0, a: 1}
   m_BuildTextureStacks: []

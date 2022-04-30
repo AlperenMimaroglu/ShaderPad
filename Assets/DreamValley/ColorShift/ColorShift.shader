@@ -65,7 +65,7 @@ Shader "Dream Valley/Color Shift"
             {
                 float x = frac(IN.uv.x + (_Time.y * .5));
                 x = abs(x * 2. - 1);
-                float4 col = lerp(_ColorA, _ColorB, x);
+                float4 col = lerp(_ColorB, _ColorA, x);
 
                 return col;
             }

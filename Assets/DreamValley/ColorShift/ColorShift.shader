@@ -9,7 +9,7 @@ Shader "Dream Valley/Color Shift"
 
     SubShader
     {
-        Name "ShapeDrawer"
+        Name "Color Shift"
         Tags
         {
             "RenderType" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline"
@@ -63,7 +63,7 @@ Shader "Dream Valley/Color Shift"
 
             half4 frag(Varyings IN) : SV_Target
             {
-                float x = frac(IN.uv.x + (_Time.y * .5));
+                float x = frac(IN.uv.x + _Time.y);
                 x = abs(x * 2. - 1);
                 float4 col = lerp(_ColorB, _ColorA, x);
 

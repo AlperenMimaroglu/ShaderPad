@@ -1,4 +1,4 @@
-Shader "Dream Valley/Color Shift"
+Shader "AM/Color Shift"
 {
     Properties
     {

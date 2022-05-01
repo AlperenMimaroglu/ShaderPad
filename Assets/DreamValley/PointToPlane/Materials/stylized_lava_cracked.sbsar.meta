@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: a8db76d41dfcf87479396a60efecb851
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: dda12f74ff9116a42b23482252b2c482, type: 3}
+  _instancesCopy:
+  - {fileID: 11400000, guid: 91e3736cd099c884f96a4d1eb6a53798, type: 2}
+  _assetPath: Assets/DreamValley/PointToPlane/Materials/stylized_lava_cracked.sbsar

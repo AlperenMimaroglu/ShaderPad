@@ -80,11 +80,11 @@ Shader "AM/Point To Plane"
                 half4 colorA = half4(1.0, 0.0, 0.0, 1);
                 half4 colorB = half4(0.0, 1.0, 0.0, 1);
                 float blend = smoothstep(-.5 - _Smooth, .5 + _Smooth, dist);
-                // half3 col = lerp(blendMap.rgb, baseMap.rgb, blend);
+                half3 col = lerp(blendMap.rgb, baseMap.rgb, blend);
 
                 half4 color = lerp(colorB, colorA, blend);
 
-                return half4(color.rgb, 1);
+                return half4(col.rgb, 1);
             }
             ENDHLSL
         }

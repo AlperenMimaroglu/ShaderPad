@@ -4,7 +4,10 @@ Shader "Unlit/Raymarcher"
     // called Base Map.
     Properties
     {
+        _Blend ("Blend Amount", Range(0.1, 1)) = 0.1
         _BaseMap("Base Map", 2D) = "white"
+        _Cube ("CubePos", Vector) = (0,0,0,1)
+        _Sphere ("SpherePos", Vector) = (0,0,0,1)
     }
 
     SubShader
@@ -47,6 +50,9 @@ Shader "Unlit/Raymarcher"
 
             CBUFFER_START(UnityPerMaterial)
             float4 _BaseMap_ST;
+            float4 _Cube;
+            float4 _Sphere;
+            float _Blend;
             CBUFFER_END
 
             Varyings vert(Attributes IN)
@@ -54,17 +60,39 @@ Shader "Unlit/Raymarcher"
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
-                OUT.ro = TransformWorldToObject(_WorldSpaceCameraPos);
-                OUT.hitPos = IN.positionOS;
+                OUT.ro = _WorldSpaceCameraPos;
+                OUT.hitPos = TransformObjectToWorld(IN.positionOS);
                 return OUT;
             }
 
-            float GetDist(float3 p)
+            float sdBox(float3 p, float3 b)
             {
-                float d = length(p) - .5;
+                float3 q = abs(p) - b;
+                return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+            }
 
-                d = length(float2(length(p.xz) - .5, p.y)) - .1;
-                return d;
+            float sdSphere(float3 p, float s)
+            {
+                return length(p) - s;
+            }
+
+            float smin(float a, float b, float k)
+            {
+                float h = max(k - abs(a - b), 0.0) / k;
+                return min(a, b) - h * h * k * (1.0 / 4.0);
+            }
+
+            float SignedDistanceToScene(float3 p)
+            {
+                float distToSphere = sdSphere(p - _Sphere, 1);
+
+                float distToBox = sdBox(p - _Cube, float3(1, 1, 1));
+
+                float d = length(float2(length(p.xz) - .5, p.y)) - .1;
+                // float3 q = float3(p.x, max(abs(p.y) - .2, 0.0), p.z);
+                // return length(float2(length(q.xy) - .2, q.z)) - .1;
+
+                return smin(distToBox, distToSphere, _Blend);
             }
 
             float Raymarch(float3 ro, float3 rd)
@@ -76,7 +104,7 @@ Shader "Unlit/Raymarcher"
                 for (int i = 0; i < MAX_STEPS; ++i)
                 {
                     float3 p = ro + dO * rd;
-                    dS = GetDist(p);
+                    dS = SignedDistanceToScene(p);
                     dO += dS;
 
                     if (dS < SURF_DIST || dO > MAX_DIST)
@@ -91,18 +119,17 @@ Shader "Unlit/Raymarcher"
             float3 GetNormal(float3 p)
             {
                 float2 e = float2(1e-3, 0);
-                float3 n = GetDist(p) - float3(
-                    GetDist(p - e.xyy),
-                    GetDist(p - e.yxy),
-                    GetDist(p - e.yyx)
-                );
 
-                return normalize(n);
+                return normalize(SignedDistanceToScene(p) - float3(
+                    SignedDistanceToScene(p - e.xyy),
+                    SignedDistanceToScene(p - e.yxy),
+                    SignedDistanceToScene(p - e.yyx)
+                ));
             }
 
             half4 frag(Varyings IN) : SV_Target
             {
-                float2 uv = IN.uv - .5;
+                float2 uv = IN.uv;
 
                 float3 ro = IN.ro;;
                 float3 rd = normalize(IN.hitPos - ro);

@@ -4,7 +4,7 @@ Shader "Unlit/Raymarcher"
     // called Base Map.
     Properties
     {
-        _Blend ("Blend Amount", Range(0.1, 1)) = 0.1
+        _Blend ("Blend Amount", Range(0.1, 2)) = 0.1
         _BaseMap("Base Map", 2D) = "white"
         _Cube ("CubePos", Vector) = (0,0,0,1)
         _Sphere ("SpherePos", Vector) = (0,0,0,1)
@@ -74,7 +74,7 @@ Shader "Unlit/Raymarcher"
             float sdSphere(float3 p, float s)
             {
                 return length(p) - s;
-            }
+            }  
 
             float smin(float a, float b, float k)
             {
@@ -99,8 +99,7 @@ Shader "Unlit/Raymarcher"
             {
                 float dO = 0;
                 float dS;
-
-
+                
                 for (int i = 0; i < MAX_STEPS; ++i)
                 {
                     float3 p = ro + dO * rd;
@@ -148,7 +147,6 @@ Shader "Unlit/Raymarcher"
                 n = saturate(n);
                 color.rgb = n;
 
-                // color.rgb = rd;
                 return color;
             }
             ENDHLSL

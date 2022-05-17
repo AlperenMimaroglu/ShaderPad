@@ -3,16 +3,135 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
+Texture2D<float4> Source;
+RWTexture2D<float4> Destination;
+
+float4x4 _CameraToWorld;
+float4x4 _CameraInverseProjection;
+
+#define MAX_STEPS 100
+#define MAX_DIST 100
+#define SURF_DIST 1e-3
 
 int _MaxSteps;
 int _MaxDistance;
 float _SurfDistance;
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
-{
-    // TODO: insert actual code here!
+float3 _RayOrigin;
+float3 _RayDirection;
 
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+float3 _Sphere;
+
+float sdBox(float3 p, float3 b)
+{
+    float3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+float sdSphere(float3 p, float s)
+{
+    return length(p - s);
+}
+
+float smin(float a, float b, float k)
+{
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * k * (1.0 / 4.0);
+}
+
+float SignedDistanceToScene(float3 p)
+{
+    float distToSphere = sdSphere(p, 1);
+
+    // float distToBox = sdBox(p - _Cube, float3(1, 1, 1));
+
+    float d = length(float2(length(p.xz) - .5, p.y)) - .1;
+    // float3 q = float3(p.x, max(abs(p.y) - .2, 0.0), p.z);
+    // return length(float2(length(q.xy) - .2, q.z)) - .1;
+
+    // return smin(distToBox, distToSphere, _Blend);
+
+    return distToSphere;
+}
+
+float Raymarch(float3 ro, float3 rd)
+{
+    float dO = 0;
+    float dS;
+
+    for (int i = 0; i < MAX_STEPS; ++i)
+    {
+        float3 p = ro + dO * rd;
+        dS = SignedDistanceToScene(p);
+        dO += dS;
+
+        if (dS < SURF_DIST || dO > MAX_DIST)
+        {
+            break;
+        }
+    }
+
+    return dO;
+}
+
+float3 GetNormal(float3 p)
+{
+    float2 e = float2(1e-3, 0);
+
+    return normalize(SignedDistanceToScene(p) - float3(
+        SignedDistanceToScene(p - e.xyy),
+        SignedDistanceToScene(p - e.yxy),
+        SignedDistanceToScene(p - e.yyx)
+    ));
+}
+
+struct Ray
+{
+    float3 origin;
+    float3 direction;
+};
+
+Ray CreateRay(float3 origin, float3 direction)
+{
+    Ray ray;
+    ray.origin = origin;
+    ray.direction = direction;
+    return ray;
+}
+
+Ray CreateCameraRay(float2 uv)
+{
+    // Transform the camera origin to world space
+    float3 origin = mul(_CameraToWorld, float4(0.0f, 0.0f, 0.0f, 1.0f)).xyz;
+
+    // Invert the perspective projection of the view-space position
+    float3 direction = mul(_CameraInverseProjection, float4(uv, 0.0f, 1.0f)).xyz;
+    // Transform the direction from camera to world space and normalize
+    direction = mul(_CameraToWorld, float4(direction, 0.0f)).xyz;
+    direction = normalize(direction);
+    return CreateRay(origin, direction);
+}
+
+
+[numthreads(8,8,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    int width, height;
+    Source.GetDimensions(width, height);
+    // Transform pixel to [-1,1] range
+    float2 uv = float2((id.xy + float2(0.5f, 0.5f)) / float2(width, height) * 2.0f - 1.0f);
+    // Get a ray for the UVs
+    Ray ray = CreateCameraRay(uv);
+
+    float d = Raymarch(ray.origin, ray.direction);
+
+    if (d > _MaxDistance)
+    {
+        Destination[id.xy] = float4(0, 0, 0, 0);
+    }
+    half3 p = ray.direction + ray.direction * d;
+    half3 n = GetNormal(p);
+
+    Destination[id.xy] = float4(1, 1, 1, 1);
+    // Destination[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
 }

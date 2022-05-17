@@ -11,7 +11,6 @@ public class RaymarchExample : MonoBehaviour
     private void Awake()
     {
         raymarcher = raymarchVolume.GetComponent<Renderer>().material;
-        Debug.Log(raymarcher);
     }
 
     private void Update()

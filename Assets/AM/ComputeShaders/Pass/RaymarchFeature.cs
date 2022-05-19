@@ -1,43 +1,46 @@
-using AM.ComputeShaders.Pass;
+using System;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-public class RaymarchFeature : ScriptableRendererFeature
+namespace AM.ComputeShaders
 {
-    private bool _initialized;
-
-    [System.Serializable]
-    public class Settings
+    public class RaymarchFeature : ScriptableRendererFeature
     {
-        public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
-        public ComputeShader raymarchShader;
+        private bool _initialized = false;
 
-        public string kernelName = "Dummy";
-        public int maxSteps = 100;
-        public int maxDistance = 100;
-        public float surfDistance = .001f;
-    }
-
-    private RaymarchPass _pass;
-    public Settings settings = new();
-
-    public override void Create()
-    {
-        if (settings.raymarchShader == null)
+        [System.Serializable]
+        public class Settings
         {
-            _initialized = false;
-            return;
+            public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRendering;
+            public ComputeShader raymarchShader;
+            public ShapeData[] shapeData = Array.Empty<ShapeData>();
+            public string kernelName = "RaymarchFeature";
         }
 
-        _pass = new RaymarchPass(settings);
-        _initialized = true;
-    }
+        private RaymarchPass _pass;
+        public Settings settings = new();
 
-    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-    {
-        if (_initialized)
+        public void Init(ShapeData[] shapeData)
         {
-            renderer.EnqueuePass(_pass);
+            _initialized = true;
+
+            settings.shapeData = shapeData;
+            Create();
+        }
+
+        public override void Create()
+        {
+            if (!_initialized) return;
+
+            _pass = new RaymarchPass(settings);
+        }
+
+        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+        {
+            if (_initialized)
+            {
+                renderer.EnqueuePass(_pass);
+            }
         }
     }
 }

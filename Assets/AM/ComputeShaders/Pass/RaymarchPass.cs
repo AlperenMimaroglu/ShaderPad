@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace AM.ComputeShaders.Pass
+namespace AM.ComputeShaders
 {
     public class RaymarchPass : ScriptableRenderPass
     {
@@ -14,13 +15,10 @@ namespace AM.ComputeShaders.Pass
         private readonly ComputeShader _raymarchShader;
         private readonly int _targetID = Shader.PropertyToID("_rayMarchBuffer");
 
-        private static readonly int MaxStepsProperty = Shader.PropertyToID("_MaxSteps");
-        private static readonly int MaxDistanceProperty = Shader.PropertyToID("_MaxDistance");
-        private static readonly int SurfaceDistanceProperty = Shader.PropertyToID("_Surf_Distance");
-
         private int _renderTextureWidth;
         private int _renderTextureHeight;
 
+        private readonly List<ComputeBuffer> _buffersToDispose = new();
 
         public RaymarchPass(RaymarchFeature.Settings settings)
         {
@@ -29,9 +27,19 @@ namespace AM.ComputeShaders.Pass
             renderPassEvent = _settings.renderPassEvent;
             _raymarchShader = _settings.raymarchShader;
 
-            _raymarchShader.SetInt(MaxStepsProperty, _settings.maxSteps);
-            _raymarchShader.SetInt(MaxDistanceProperty, _settings.maxDistance);
-            _raymarchShader.SetFloat(SurfaceDistanceProperty, _settings.surfDistance);
+            CreateScene(settings.shapeData);
+        }
+
+        void CreateScene(ShapeData[] shapeData)
+        {
+            if (shapeData is not {Length: > 0}) return;
+            Debug.Log(shapeData.Length);
+            ComputeBuffer shapeBuffer = new ComputeBuffer(shapeData.Length, ShapeData.GetSize());
+            shapeBuffer.SetData(shapeData);
+            _raymarchShader.SetBuffer(0, "shapes", shapeBuffer);
+            _raymarchShader.SetInt("numShapes", shapeData.Length);
+
+            _buffersToDispose.Add(shapeBuffer);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -46,55 +54,51 @@ namespace AM.ComputeShaders.Pass
             _renderTextureHeight = descriptor.height;
         }
 
+        void SetParameters(CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            var mainLightIdx = renderingData.lightData.mainLightIndex;
+            var lightSource = renderingData.lightData.visibleLights[mainLightIdx].light;
+
+            bool lightIsDirectional = lightSource.type == LightType.Directional;
+
+            cmd.SetComputeMatrixParam(_raymarchShader, "_CameraToWorld",
+                renderingData.cameraData.camera.cameraToWorldMatrix);
+            cmd.SetComputeMatrixParam(_raymarchShader, "_CameraToInverseProjection",
+                renderingData.cameraData.camera.projectionMatrix.inverse);
+            _raymarchShader.SetVector("_Light",
+                (lightIsDirectional) ? lightSource.transform.forward : lightSource.transform.position);
+            _raymarchShader.SetBool("positionLight", !lightIsDirectional);
+
+            cmd.SetComputeTextureParam(_raymarchShader, 0, "Source", renderingData.cameraData.renderer.cameraColorTarget);
+            cmd.SetComputeTextureParam(_raymarchShader, 0, "Destination",_targetID );
+        }
+
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             var cmd = CommandBufferPool.Get();
 
             using (new ProfilingScope(cmd, new ProfilingSampler(PROFILER_TAG)))
             {
-                if (renderingData.cameraData.isSceneViewCamera)
-                    return;
+                // if (renderingData.cameraData.isSceneViewCamera)
+                //     return;
 
-                // var mainKernel = _raymarchShader.FindKernel(_settings.kernelName);
-                // _raymarchShader.GetKernelThreadGroupSizes(mainKernel, out uint xGroupSize, out uint yGroupSize, out _);
-                cmd.Blit(renderingData.cameraData.targetTexture, _rayMarchBuffer);
+                SetParameters(cmd, ref renderingData);
 
-                cmd.SetComputeTextureParam(_raymarchShader, 0, "Source", _rayMarchBuffer);
-                cmd.SetComputeTextureParam(_raymarchShader, 0, "Destination", _targetID);
-                cmd.SetComputeMatrixParam(_raymarchShader, "_CameraToWorld",
-                    renderingData.cameraData.camera.cameraToWorldMatrix);
-                cmd.SetComputeMatrixParam(_raymarchShader, "_CameraToInverseProjection",
-                    renderingData.cameraData.camera.projectionMatrix.inverse);
-
-                int threadGroupsX = Mathf.CeilToInt(_renderTextureWidth / 8f);
-                int threadGroupsY = Mathf.CeilToInt(_renderTextureHeight / 8f);
+                var threadGroupsX = Mathf.CeilToInt(_renderTextureWidth / 8f);
+                var threadGroupsY = Mathf.CeilToInt(_renderTextureHeight / 8f);
 
                 cmd.DispatchCompute(_raymarchShader, 0, threadGroupsX, threadGroupsY, 1);
-                cmd.Blit(_rayMarchBuffer, renderingData.cameraData.renderer.cameraColorTarget);
+
+                cmd.Blit(_targetID, renderingData.cameraData.renderer.cameraColorTarget);
+
+                foreach (var buffer in _buffersToDispose)
+                {
+                    buffer.Dispose();
+                }
 
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
                 CommandBufferPool.Release(cmd);
-
-                // // Init ();
-                // // buffersToDispose = new List<ComputeBuffer> ();
-                //
-                // // InitRenderTexture ();
-                // // CreateScene ();
-                // // SetParameters ();
-                //
-                // _raymarchShader.SetTexture(0, "Source", source);
-                // _raymarchShader.SetTexture(0, "Destination", target);
-                //
-                // int threadGroupsX = Mathf.CeilToInt(_renderTextureWidth / 8.0f);
-                // int threadGroupsY = Mathf.CeilToInt(_renderTextureHeight / 8.0f);
-                // _raymarchShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-                //
-                // Graphics.Blit(target, destination);
-                //
-                // // foreach (var buffer in buffersToDispose) {
-                // //     buffer.Dispose ();
-                // // }
             }
         }
 

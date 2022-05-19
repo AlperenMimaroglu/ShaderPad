@@ -35,14 +35,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02084a896c2740a7983f9cf75ffb3dff, type: 3}
   m_Name: RaymarchFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     renderPassEvent: 1000
-    raymarchShader: {fileID: 7200000, guid: 53add781a4936da4bbad2defddd6d662, type: 3}
+    raymarchShader: {fileID: 7200000, guid: 07335a552fc334acd81fb9585f26ff7e, type: 3}
     kernelName: CSMain
-    maxSteps: 100
-    maxDistance: 100
-    surfDistance: 0.001
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

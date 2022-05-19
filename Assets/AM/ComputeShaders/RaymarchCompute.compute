@@ -13,10 +13,6 @@ float4x4 _CameraInverseProjection;
 #define MAX_DIST 100
 #define SURF_DIST 1e-3
 
-int _MaxSteps;
-int _MaxDistance;
-float _SurfDistance;
-
 float3 _RayOrigin;
 float3 _RayDirection;
 
@@ -117,7 +113,9 @@ Ray CreateCameraRay(float2 uv)
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     int width, height;
-    Source.GetDimensions(width, height);
+    Destination.GetDimensions(width, height);
+
+    Destination[id.xy] = Source[id.xy];
     // Transform pixel to [-1,1] range
     float2 uv = float2((id.xy + float2(0.5f, 0.5f)) / float2(width, height) * 2.0f - 1.0f);
     // Get a ray for the UVs
@@ -125,13 +123,15 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     float d = Raymarch(ray.origin, ray.direction);
 
-    if (d > _MaxDistance)
+    half3 p = ray.direction + ray.direction * d;
+
+    if (d > MAX_DIST)
     {
         Destination[id.xy] = float4(0, 0, 0, 0);
+        return;
     }
-    half3 p = ray.direction + ray.direction * d;
     half3 n = GetNormal(p);
 
-    Destination[id.xy] = float4(1, 1, 1, 1);
+    Destination[id.xy] = float4(1, 1, 1, 0);
     // Destination[id.xy] = float4(id.x & id.y, (id.x & 15) / 15.0, (id.y & 15) / 15.0, 0.0);
 }

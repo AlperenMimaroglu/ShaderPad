@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 0ce18985f466c4d47b090d8638918082
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: dda12f74ff9116a42b23482252b2c482, type: 3}
+  _instancesCopy: []
+  _fileAsset: {instanceID: 0}
+  _assetPath: Assets/AM/Water/v2/stylized_stone_cliff_with_sand.sbsar

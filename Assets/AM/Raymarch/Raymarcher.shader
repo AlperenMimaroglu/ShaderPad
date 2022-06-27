@@ -5,7 +5,6 @@ Shader "Unlit/Raymarcher"
     Properties
     {
         _Blend ("Blend Amount", Range(0.1, 2)) = 0.1
-        _BaseMap("Base Map", 2D) = "white"
         _Cube ("CubePos", Vector) = (0,0,0,1)
         _Sphere ("SpherePos", Vector) = (0,0,0,1)
     }
@@ -45,11 +44,7 @@ Shader "Unlit/Raymarcher"
                 float3 hitPos : TEXCOORD2;
             };
 
-            TEXTURE2D(_BaseMap);
-            SAMPLER(sampler_BaseMap);
-
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseMap_ST;
             float4 _Cube;
             float4 _Sphere;
             float _Blend;
@@ -59,7 +54,6 @@ Shader "Unlit/Raymarcher"
             {
                 Varyings OUT;
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.ro = _WorldSpaceCameraPos;
                 OUT.hitPos = TransformObjectToWorld(IN.positionOS);
                 return OUT;
@@ -74,7 +68,7 @@ Shader "Unlit/Raymarcher"
             float sdSphere(float3 p, float s)
             {
                 return length(p) - s;
-            }  
+            }
 
             float smin(float a, float b, float k)
             {
@@ -99,7 +93,7 @@ Shader "Unlit/Raymarcher"
             {
                 float dO = 0;
                 float dS;
-                
+
                 for (int i = 0; i < MAX_STEPS; ++i)
                 {
                     float3 p = ro + dO * rd;
